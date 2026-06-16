@@ -1,0 +1,33 @@
+
+
+services:
+  job-service:
+    build: ./job-service
+    ports:
+      - "3000:3000"
+    environment:
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - RABBITMQ_URL=${RABBITMQ_URL}
+    restart: always
+
+  worker-service:
+    build: ./worker-service
+    environment:
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - RABBITMQ_URL=${RABBITMQ_URL}
+    restart: always
+
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "4000:4000"
+    environment:
+      - RABBITMQ_URL=${RABBITMQ_URL}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    restart: always

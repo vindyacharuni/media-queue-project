@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Media Queue Platform</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 40px;
+      width: 100%;
+      max-width: 600px;
+      box-shadow: 0 0 40px rgba(0,0,0,0.5);
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    p.subtitle {
+      color: #888;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #111;
+      color: #fff;
+      font-size: 15px;
+      resize: vertical;
+      min-height: 100px;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: #6c63ff;
+    }
+
+    button {
+      margin-top: 16px;
+      width: 100%;
+      padding: 14px;
+      background: #6c63ff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover { background: #574fd6; }
+    button:disabled { background: #444; cursor: not-allowed; }
+
+    .status-box {
+      margin-top: 24px;
+      padding: 16px;
+      border-radius: 8px;
+      background: #111;
+      border: 1px solid #333;
+      display: none;
+    }
+
+    .status-box.visible { display: block; }
+
+    .status-label {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 6px;
+    }
+
+    .status-value {
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .status-value.pending { color: #f0a500; }
+    .status-value.done { color: #4caf50; }
+
+    .job-id {
+      font-size: 12px;
+      color: #555;
+      margin-top: 8px;
+      word-break: break-all;
+    }
+
+    .result-box {
+      margin-top: 16px;
+      padding: 12px;
+      background: #0d1f0d;
+      border: 1px solid #2a4a2a;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .result-box.visible { display: block; }
+
+    .result-box p {
+      font-size: 13px;
+      color: #4caf50;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎬 Media Queue Platform</h1>
+    <p class="subtitle">Submit a prompt and get notified when your media is ready.</p>
+
+    <textarea id="prompt" placeholder="Describe the media you want to generate..."></textarea>
+    <button id="submitBtn" onclick="submitJob()">Submit Job</button>
+
+    <div class="status-box" id="statusBox">
+      <div class="status-label">Job Status</div>
+      <div class="status-value" id="statusValue">Pending...</div>
+      <div class="job-id" id="jobIdDisplay"></div>
+    </div>
+
+    <div class="result-box" id="resultBox">
+      <p id="resultUrl"></p>
+    </div>
+  </div>
+
+  <script>
+    // Connect to notification service
+    const socket = io('http://localhost:4000');
+
+    async function submitJob() {
+      const prompt = document.getElementById('prompt').value.trim();
+
+      if (!prompt) {
+        alert('Please enter a prompt!');
+        return;
+      }
+
+      // Disable button while processing
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      // Submit job to job-service
+      const response = await fetch('http://localhost:3000/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+
+      const data = await response.json();
+      const jobId = data.jobId;
+
+      // Show status box
+      document.getElementById('statusBox').classList.add('visible');
+      document.getElementById('statusValue').textContent = '⏳ Pending...';
+      document.getElementById('statusValue').className = 'status-value pending';
+      document.getElementById('jobIdDisplay').textContent = `Job ID: ${jobId}`;
+
+      btn.textContent = 'Waiting for result...';
+
+      // Tell notification service we are watching this job
+      socket.emit('watch-job', jobId);
+
+      // Listen for completion
+      socket.on('job-done', (data) => {
+        if (data.jobId === jobId) {
+          document.getElementById('statusValue').textContent = '✅ Done!';
+          document.getElementById('statusValue').className = 'status-value done';
+
+          document.getElementById('resultBox').classList.add('visible');
+          document.getElementById('resultUrl').textContent = `Result: ${data.resultUrl}`;
+
+          btn.disabled = false;
+          btn.textContent = 'Submit Another Job';
+        }
+      });
+    }
+  </script>
+</body>
+</html>
