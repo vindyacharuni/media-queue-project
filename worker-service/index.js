@@ -10,7 +10,8 @@ const redis = new Redis({
   host: process.env.REDIS_HOST,
   port: process.env.REDIS_PORT,
   username: 'default',
-  password: 'gPyTjT06OFJymz0LazQasM1odxJQwgRp',
+  password: process.env.REDIS_PASSWORD,
+  //password: 'gPyTjT06OFJymz0LazQasM1odxJQwgRp',
 });
 
 function simulateWork(jobId) {

@@ -1,5 +1,3 @@
-
-
 services:
   job-service:
     build: ./job-service
@@ -27,7 +25,4 @@ services:
       - "4000:4000"
     environment:
       - RABBITMQ_URL=${RABBITMQ_URL}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
     restart: always
